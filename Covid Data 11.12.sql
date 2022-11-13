@@ -8,42 +8,6 @@ From PortfolioProject..CovidDeaths
 Where continent is not null 
 order by 3,4
 
--- Find month with highest total new cases % for each country
-
-with lvl1 as (
-Select Continent, location, CONVERT(varchar, (date-day(date)+1), 106) as "Month", (100*sum(isnull(new_cases,0))/population) as "% Infected Total", 
-sum(isnull(new_cases,0)) as new_cases_total, population, 
-sum(case when new_cases is null then 1 else 0 end) as "Null Count", 
-count(location) as "Count", 
-Rank() over(order by (100*sum(isnull(new_cases,0))/population) desc) as "Max New Cases by Country and Month"
-
-From PortfolioProject..CovidDeaths a
-Where continent is not null 
-group by Continent, location, CONVERT(varchar, (date-day(date)+1), 106), population
- )
- , max_month as (
- select a.*,
- sum("Count") over(partition by continent, location) as "Location Count", 
- sum("Null Count") over(partition by continent, location) as "Null Location Count",
- RANK() over(partition by Continent, location order by "% Infected Total" desc) as "Month with Max Cases by Location"
- from lvl1 a
- )
-
- select 
- case when "Null Location Count" = "Location Count" then 'No Data' else "Month" end as "Month",
- continent as "Continent", location as "Location", new_cases_total as "New Cases", population as "Population",
- format("% Infected Total",'N5') as "% of Population with New Cases"
- from max_month a
-where
-"Month with Max Cases by Location" = 1
-
-group by case when "Null Location Count" = "Location Count" then 'No Data' else "Month" end, 
-format("% Infected Total",'N5') , CAST(10000*"% Infected Total" AS int), 
-continent, location, new_cases_total, population, "Max New Cases by Country and Month", "Month with Max Cases by Location"
-order by CAST(10000*"% Infected Total" AS int) desc
-
-
-
 
 -- Select Data that we are going to be starting with
 
@@ -113,6 +77,42 @@ From PortfolioProject..CovidDeaths
 where continent is not null 
 --Group By date
 order by 1,2
+
+
+
+-- Find month with highest total new cases % for each country
+
+with lvl1 as (
+Select Continent, location, CONVERT(varchar, (date-day(date)+1), 106) as "Month", (100*sum(isnull(new_cases,0))/population) as "% Infected Total", 
+sum(isnull(new_cases,0)) as new_cases_total, population, 
+sum(case when new_cases is null then 1 else 0 end) as "Null Count", 
+count(location) as "Count", 
+Rank() over(order by (100*sum(isnull(new_cases,0))/population) desc) as "Max New Cases by Country and Month"
+
+From PortfolioProject..CovidDeaths a
+Where continent is not null 
+group by Continent, location, CONVERT(varchar, (date-day(date)+1), 106), population
+ )
+ , max_month as (
+ select a.*,
+ sum("Count") over(partition by continent, location) as "Location Count", 
+ sum("Null Count") over(partition by continent, location) as "Null Location Count",
+ RANK() over(partition by Continent, location order by "% Infected Total" desc) as "Month with Max Cases by Location"
+ from lvl1 a
+ )
+
+ select 
+ case when "Null Location Count" = "Location Count" then 'No Data' else "Month" end as "Month",
+ continent as "Continent", location as "Location", new_cases_total as "New Cases", population as "Population",
+ format("% Infected Total",'N5') as "% of Population with New Cases"
+ from max_month a
+where
+"Month with Max Cases by Location" = 1
+
+group by case when "Null Location Count" = "Location Count" then 'No Data' else "Month" end, 
+format("% Infected Total",'N5') , CAST(10000*"% Infected Total" AS int), 
+continent, location, new_cases_total, population, "Max New Cases by Country and Month", "Month with Max Cases by Location"
+order by CAST(10000*"% Infected Total" AS int) desc
 
 
 
